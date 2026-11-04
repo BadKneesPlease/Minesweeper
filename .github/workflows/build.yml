@@ -1,0 +1,51 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make the build script runnable
+        run: chmod +x gradlew
+
+      - name: Run game-logic tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Build APK
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Name the APK
+        run: cp app/build/outputs/apk/release/app-release.apk Minesweeper.apk
+
+      - name: Keep a copy on the run page
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minesweeper-apk
+          path: Minesweeper.apk
+
+      - name: Publish a release with the APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Minesweeper build ${{ github.run_number }}
+          body: Download Minesweeper.apk below and open it on your phone to install.
+          files: Minesweeper.apk  
